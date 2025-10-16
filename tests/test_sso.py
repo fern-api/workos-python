@@ -294,6 +294,34 @@ class TestSSO(SSOFixtures):
             "grant_type": "authorization_code",
         }
 
+    def test_get_profile_and_token_with_code_verifier(
+        self, mock_profile, capture_and_mock_http_client_request
+    ):
+        response_dict = {
+            "profile": mock_profile,
+            "access_token": "01DY34ACQTM3B1CSX1YSZ8Z00D",
+        }
+
+        request_kwargs = capture_and_mock_http_client_request(
+            self.http_client, response_dict, 200
+        )
+
+        profile_and_token = syncify(
+            self.sso.get_profile_and_token("123", code_verifier="test_code_verifier")
+        )
+
+        assert profile_and_token.access_token == "01DY34ACQTM3B1CSX1YSZ8Z00D"
+        assert profile_and_token.profile.dict() == mock_profile
+        assert request_kwargs["url"].endswith("/sso/token")
+        assert request_kwargs["method"] == "post"
+        assert request_kwargs["json"] == {
+            "client_id": "client_b27needthisforssotemxo",
+            "client_secret": "sk_test",
+            "code": "123",
+            "grant_type": "authorization_code",
+            "code_verifier": "test_code_verifier",
+        }
+
     def test_get_profile(self, mock_profile, capture_and_mock_http_client_request):
         request_kwargs = capture_and_mock_http_client_request(
             self.http_client, mock_profile, 200

@@ -117,7 +117,9 @@ class SSOModule(Protocol):
         """
         ...
 
-    def get_profile_and_token(self, code: str) -> SyncOrAsync[ProfileAndToken]:
+    def get_profile_and_token(
+        self, code: str, code_verifier: Optional[str] = None
+    ) -> SyncOrAsync[ProfileAndToken]:
         """Get the profile of an authenticated User
 
         Once authenticated, using the code returned having followed the authorization URL,
@@ -125,6 +127,7 @@ class SSOModule(Protocol):
 
         Args:
             code (str): Code returned by WorkOS on completion of OAuth 2.0 workflow.
+            code_verifier (str): The code verifier for the PKCE flow. (Optional)
 
         Returns:
             ProfileAndToken: WorkOSProfileAndToken object representing the User.
@@ -217,13 +220,18 @@ class SSO(SSOModule):
 
         return Profile.model_validate(response)
 
-    def get_profile_and_token(self, code: str) -> ProfileAndToken:
+    def get_profile_and_token(
+        self, code: str, code_verifier: Optional[str] = None
+    ) -> ProfileAndToken:
         json = {
             "client_id": self._http_client.client_id,
             "client_secret": self._http_client.api_key,
             "code": code,
             "grant_type": OAUTH_GRANT_TYPE,
         }
+
+        if code_verifier is not None:
+            json["code_verifier"] = code_verifier
 
         response = self._http_client.request(
             TOKEN_PATH, method=REQUEST_METHOD_POST, json=json
@@ -321,13 +329,18 @@ class AsyncSSO(SSOModule):
 
         return Profile.model_validate(response)
 
-    async def get_profile_and_token(self, code: str) -> ProfileAndToken:
+    async def get_profile_and_token(
+        self, code: str, code_verifier: Optional[str] = None
+    ) -> ProfileAndToken:
         json = {
             "client_id": self._http_client.client_id,
             "client_secret": self._http_client.api_key,
             "code": code,
             "grant_type": OAUTH_GRANT_TYPE,
         }
+
+        if code_verifier is not None:
+            json["code_verifier"] = code_verifier
 
         response = await self._http_client.request(
             TOKEN_PATH, method=REQUEST_METHOD_POST, json=json
